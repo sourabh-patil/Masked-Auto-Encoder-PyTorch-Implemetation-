@@ -11,31 +11,27 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
 
-from dataset_cars import *
+from dataset import *
 from model import *
 import config
 
 
-os.environ["CUDA_VISIBLE_DEVICES"]='0'
+os.environ["CUDA_VISIBLE_DEVICES"]=config.GPU
 
 dataset = Image_Dataset(parent_path='./cars_data/cars_test/cars_test')
 dataloader = DataLoader(dataset,shuffle=False,batch_size=1)
 
-# train_ds = Image_Dataset(parent_path='/media/HDD8TB3/sourabh/deep_sight_mae/mae_front_defect_patches/shapes_data/shapes/',mode='val')
-# dataloader = DataLoader(train_ds,batch_size=1, num_workers = 4,shuffle=True)
-
-
 print(len(dataloader))
 
-model = MaskedAutoencoderViT(img_size=224,patch_size=16,in_chans=config.IN_CHANS,embed_dim=512,
-                             depth=12,num_heads=config.N_HEADS,decoder_depth=2,
-                             decoder_embed_dim=256,decoder_num_heads=config.DECODER_N_HEADS)
+model = MaskedAutoencoderViT(img_size=config.IMG_SIZE, patch_size=config.PATCH_SIZE, in_chans=config.IN_CHANS, embed_dim=config.EMBED_DIM,
+                             depth=config.DEPTH, num_heads=config.N_HEADS, decoder_depth=config.DECODER_DEPTH,
+                             decoder_embed_dim=config.DECODER_EMBED_DIM, decoder_num_heads=config.DECODER_N_HEADS)
 
 print(sum([param.numel() for param in model.parameters()]))
 
 print('MAE model defined')
 
-checkpoint = torch.load('./weights/cars_MAE_expt_adamw_enc_emb_512_dp_12_dec_emb_256_dp_2_mr_75/epoch_2900.pth.tar')
+checkpoint = torch.load('./weights/'+ config.EXPT_NAME + '/last_epoch.pth.tar')
 model.load_state_dict(checkpoint['model_state_dict'])
 
 print('MAE model loaded')
@@ -43,13 +39,13 @@ print('MAE model loaded')
 model.cuda()
 model.eval()
 
-write_path = '/media/HDD8TB3/sourabh/deep_sight_mae/mae_front_defect_patches/weights/cars_MAE_expt_adamw_enc_emb_512_dp_12_dec_emb_256_dp_2_mr_75/epoch_2900_results/'
+write_path = '/weights' + config.EXPT_NAME  + '/results/'
 
 with torch.no_grad():
 
     for idx,x in tqdm(enumerate(dataloader)):
         x = x.float().cuda()
-        loss, y, mask = model(x, mask_ratio=0.75)
+        loss, y, mask = model(x, mask_ratio=config.MASKING_RATIO)
  
         y = model.unpatchify(y)
         y = torch.einsum('nchw->nhwc', y).detach().cpu()
