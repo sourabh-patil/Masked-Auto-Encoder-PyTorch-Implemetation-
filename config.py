@@ -1,4 +1,4 @@
-NUM_EPOCHS = 1000
+NUM_EPOCHS = 6000
 GPU = '0'
 EXPT_NAME = 'mae_stanford_cars'
 
